@@ -75,36 +75,43 @@ int nrhs, Const mxArray *prhs[])
 	int n_offset;
 	int nod_i;
 	int nod_o;
-	cint *dim_i;
-	int dim_o[Max_ndim+1];
+	mwSize *dim_i;
+	mwSize dim_o[Max_ndim+1];
 
 	if (nlhs != 1 || nrhs != 4) {
 		penalty_mex_help();
 		Call(mxu_arg, (nrhs, prhs))
 		Fail(Usage)
 	}
-
+	Call(mxu_arg, (nrhs, prhs))
 	mx_kappa = prhs[1];
 	mx_offsets = prhs[2];
 	mx_power = prhs[3];
-	if (!mxIsRealSingle(mx_kappa)) Fail("mask must be real single")
-	if (!mxIsInt32(mx_offsets)) Fail("offsets must be int32")
-	if (!mxIsScalarDouble(mx_power)) Fail("power must be real scalar double")
-
+	// if (!mxIsRealSingle(mx_kappa)) Fail("mask must be real single")
+	// if (!mxIsInt32(mx_offsets)) Fail("offsets must be int32")
+	// if (!mxIsScalarDouble(mx_power)) Fail("power must be real scalar double")
 	nod_i = mxGetNumberOfDimensions(mx_kappa);
-	Call(dim_i = mxGetDimensions, (mx_kappa))
-
+	dim_i = mxGetDimensions(prhs[1]);
+	Call(mxu_arg, (nrhs, prhs))
+	printf("mx_kappa has %d dimensions\n", nod_i);
+    for (int td = 0; td < nod_i; td++) {
+        printf("  D %d = %d\n", td, dim_i[td]);
+    }
 	n_offset = mxGetM(mx_offsets) * mxGetN(mx_offsets);
 	nod_o = nod_i + 1;
 	if (nod_i > Max_ndim) Fail("ndim limit exceeded!?")
 	Bcopy(dim_i, dim_o, nod_i)
 	dim_o[nod_o-1] = n_offset;
 
-	Call(plhs[0] = mxCreateNumericArray,
+    printf("Creating array with %d dimensions\n", nod_o);
+    for (int td = 0; td < nod_o; td++) {
+        printf("  D %d = %d\n", td, dim_o[td]);
+    }
+
+    Call(plhs[0] = mxCreateNumericArray,
 		(nod_o, dim_o, mxSINGLE_CLASS, mxREAL))
 
 	Call(arg = mxu_string, (prhs[0], "1st argument"))
-
 	if (Streqn(arg, "wk,tight", 8)) {
 		int order;
 		Call(1 == sscanf, (arg, "wk,tight,%d", &order))
@@ -155,8 +162,8 @@ cint power)
 	int n_offset;
 	int nod_i;
 	int nod_o;
-	cint *dim_i;
-	int dim_o[Max_ndim+1];
+	mwSize *dim_i;
+	mwSize dim_o[Max_ndim+1];
 
 	if (nlhs != 1 || nrhs < 3 || nrhs > 4) {
 		penalty_mex_help();
@@ -249,9 +256,9 @@ cint power)
 	int nr = 1; /* # of realizations */
 	int n_offset;
 	int nod_i;
-	cint *dim_i;
+	mwSize *dim_i;
 	int nod_o;
-	int dim_o[Max_ndim];
+	mwSize dim_o[Max_ndim];
 
 	if (nlhs != 1 || nrhs < 3 || nrhs > 4) {
 		penalty_mex_help();
