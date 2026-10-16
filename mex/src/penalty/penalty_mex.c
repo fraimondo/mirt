@@ -42,6 +42,11 @@ static void penalty_mex_help()
 		useful for diagonal of Hessian of penalty.\n\
 		x = C' .^2 * wk \n\
 \n\
+	x = function('diff2,backA', wk, offsets, [lastdim]);\n\
+		like diff2,back1 but with absolute c_kj values: x = |C|' * wk\n\
+		useful for separable surrogate denominators.\n\
+		('diff1,backA' is the same as 'diff1,back2' since |c_kj| = 1.)\n\
+\n\
 	d = function('wk,tight,1', kappa, offsets, distance_power);\n\
 		kappa is floats, often just a binary support mask in floats.\n\
 		output is [size(kappa) length(offsets)]\n\
@@ -347,6 +352,20 @@ cint power)
 }
 
 
+/*
+* penalty_back_power()
+* map the suffix of 'diff?,back?' to the power argument of penalty_diff_back:
+* '' or '1' -> 1 (C'), '2' -> 2 ((C.^2)'), 'A' -> 3 (|C|'), else 0 (invalid)
+*/
+static int penalty_back_power(cchar *suffix)
+{
+	if (Streq(suffix, "") || Streq(suffix, "1")) return 1;
+	if (Streq(suffix, "2")) return 2;
+	if (Streq(suffix, "A")) return 3;
+	return 0;
+}
+
+
 /* intermediate gateway routine */
 static sof penalty_mex(
 int nlhs, mxArray *plhs[],
@@ -384,11 +403,11 @@ int nrhs, Const mxArray *prhs[])
 	*/
 	else if (Streqn(arg, "diff1,back", 10))
 		Call(penalty_diff_back_mex,
-		(nlhs, plhs, nrhs, prhs, 1, 1+Streq(arg, "diff1,back2")))
+		(nlhs, plhs, nrhs, prhs, 1, penalty_back_power(arg+10)))
 
 	else if (Streqn(arg, "diff2,back", 10))
 		Call(penalty_diff_back_mex,
-		(nlhs, plhs, nrhs, prhs, 2, 1+Streq(arg, "diff2,back2")))
+		(nlhs, plhs, nrhs, prhs, 2, penalty_back_power(arg+10)))
 
 	/*
 	* wk factors for \sum_k w_k \pot([Cx]_k)

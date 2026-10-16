@@ -395,6 +395,36 @@ cint	nn)
 
 
 /*
+* penalty_diff2_backA_offset()
+* 2nd finite differences.  for ii=offset to nn-offset-1:
+* adjoint of |C|, i.e., |2|*image[ii] + |-1|*image[ii+offset] + |-1|*image[ii-offset]
+* useful for separable surrogate denominators: \sum_k |c_kj| wk
+*/
+static void penalty_diff2_backA_offset(
+float	*po,	/* [[nn]] */
+cfloat	*pi,	/* [[nn]] */
+cint	offset,	/* caution: must be positive! */
+cint	nn)
+{
+	register int ii;
+	register float *pl = po;
+	register float *pr = po + 2*offset;
+
+	if (offset <= 0 || 2*offset > nn)
+		return; /* handle bad cases gracefully */
+
+	pi += offset;
+	po += offset;
+	for (ii=nn-2*offset; ii; --ii) {
+		register cfloat value = *pi++;
+		*pl++ += value;
+		*pr++ += value;
+		*po++ += 2 * value;
+	}
+}
+
+
+/*
 * penalty_diff1_back2_offset()
 * c_{kj}^2 = 1, so
 * \sum_k wk c_{kj}^2
@@ -456,6 +486,7 @@ cint	power)	/* 1 for ckj or 2 for ckj^2 */
 
 /*
 * penalty_diff_back()
+* power: 1 for C', 2 for (C.^2)', 3 for |C|'
 */
 sof penalty_diff_back(
 float	*po,	/* [[nn]] */
@@ -474,8 +505,10 @@ cint	power)
 		fun = penalty_diff1_back1_offset;
 	else if (order == 2 && power == 1)
 		fun = penalty_diff2_back1_offset;
-	else if (order == 1 && power == 2)
+	else if (order == 1 && (power == 2 || power == 3)) /* |c_kj| = c_kj^2 = 1 */
 		fun = penalty_diff1_back2_offset;
+	else if (order == 2 && power == 3)
+		fun = penalty_diff2_backA_offset;
 	else
 		Fail2("unknown order=%d power=%d combination", order, power)
 
